@@ -1,164 +1,180 @@
-#include<stdio.h>
-#include<stdlib.h> 
-#include<stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
-#define OPERATORS "*/+-"  
+#define OPERATORS "*/+-"
+#define ADD '+'
+#define SUB '-'
+#define MUL '*'
+#define DIV '/'
+#define NULL_TERMINATOR '\0'
 
 void readInput(char user_input[]) 
 {
-    printf("Enter a expression to be calculated: ");
-    fgets(user_input,100,stdin);
-    //If i press enter after typing input,it adds \n in string and gives error
-    // here need to replace \n by null  character
-     for (int i = 0; user_input[i] != '\0'; i++)
+    printf("Enter an expression to be calculated: ");
+    fgets(user_input, 100, stdin);
+    char *iterator = user_input;
+    while (*iterator != NULL_TERMINATOR) 
     {
-        if (user_input[i] == '\n') 
+        if (*iterator == '\n') 
         {
-            user_input[i] = '\0';
+            *iterator = NULL_TERMINATOR;
             break;
         }
+        iterator++;
     }
 }
-
 
 void removeWhitespaces(char user_input[]) 
 {
-    int iterator_input = 0, iterator_current = 0;
-    while (user_input[iterator_input] != '\0') 
+    char *input_iterator = user_input;
+    char *current_iterator = user_input;
+    while (*input_iterator != NULL_TERMINATOR) 
     {
-        if (user_input[iterator_input] != ' ') 
+        if (*input_iterator != ' ') 
         {
-            user_input[iterator_current++] = user_input[iterator_input];
+            *current_iterator = *input_iterator;
+            current_iterator++;
         }
-        iterator_input++;
+        input_iterator++;
     }
-    user_input[iterator_current] = '\0';
+    *current_iterator = NULL_TERMINATOR;
 }
 
-
-bool isDigit(char ch) 
+bool isDigitCharacter(char character) 
 {
-    if(ch>='0' && ch<='9')
-    {
-        return true;
-    }
-    return false;
+    return character >= '0' && character <= '9';
 }
 
-
-bool isOperator(char ch) 
+bool isOperator(char character) 
 {
-    for (int i=0; OPERATORS[i]!='\0';i++)
+    char *op_iterator = OPERATORS;
+    while (*op_iterator != NULL_TERMINATOR) 
     {
-        if (ch==OPERATORS[i]) 
+        if (character == *op_iterator) 
         {
             return true;
         }
+        op_iterator++;
     }
     return false;
 }
 
-
-void checkInput(char user_input[]) 
+void validateInput(char user_input[]) 
 {
-    for (int i = 0; user_input[i] != '\0'; i++) 
+    char *iterator = user_input;
+    while (*iterator != NULL_TERMINATOR) 
     {
-        if (!isDigit(user_input[i]) && !isOperator(user_input[i])) 
+        if (!isDigitCharacter(*iterator) && !isOperator(*iterator)) 
         {
             printf("Error: Invalid character in expression.\n");
             exit(0);
         }
+        iterator++;
     }
 }
 
-
-int checkPrecedence(char op)
+int computeOperation(int operand1, int operand2, char operator) 
 {
-    if (op == '*' || op == '/') return 2;
-    if (op == '+' || op == '-') return 1;
-}
-
-
-int computeOpeartions(int operand1, int operand2, char operator) 
-{
-    if (operator == '+')      return operand1 + operand2; 
-    else if (operator == '-') return operand1 - operand2;
-    else if (operator == '*') return operand1 * operand2; 
-    else if (operator == '/') 
+    switch (operator) 
     {
-        if (operand2 != 0) 
-        {
-            return operand1 / operand2; 
-        }
-        else
-        {
-        printf("Error:Division by zero.\n");
-        exit(0); 
-        }
+        case ADD: return operand1 + operand2;
+        case SUB: return operand1 - operand2;
+        case MUL: return operand1 * operand2;
+        case DIV:
+            if (operand2 != 0) return operand1 / operand2;
+            printf("Error: Division by zero.\n");
+            exit(0);
+        default:
+            printf("Error: Unknown operator.\n");
+            exit(0);
     }
 }
 
-
-int traverseNumber(char user_input[], int *iterator) 
+int extractNumber(char user_input[], char **iterator) 
 {
-    int num = 0;
-    while (isDigit(user_input[*iterator])) 
+    int number = 0;
+    while (isDigitCharacter(**iterator)) 
     {
-        num = num * 10 + (user_input[*iterator] - '0');
+        number = number * 10 + (**iterator - '0');
         (*iterator)++;
     }
-    return num;
+    return number;
 }
 
-
-void accessOpeartor(int *numbers, int *num_idx, char *operators, int *op_idx)
+void accessOperator(int *numbers, int *num_idx, char *operators, int *op_idx)
 {
     int operand2 = numbers[--(*num_idx)];
     int operand1 = numbers[--(*num_idx)];
     char operator = operators[--(*op_idx)];
-    numbers[(*num_idx)++] = computeOpeartions(operand1, operand2, operator);
+    numbers[(*num_idx)++] = computeOperation(operand1, operand2, operator);
 }
-
 
 int evaluateExpression(char user_input[])
 {
     int numbers[100];          
     char operators[100];      
-    int num_idx = 0;      
-    int op_idx = 0;   
+    int num_idx = 0;          
+    int op_idx = 0;           
 
-    int iterator = 0;         
-
-    while (user_input[iterator] != '\0') 
+    char *iterator = user_input; 
+    while (*iterator != NULL_TERMINATOR) 
     {
-        if (isDigit(user_input[iterator])) 
+        if (isDigitCharacter(*iterator)) 
         {
-            numbers[num_idx++] = traverseNumber(user_input, &iterator);
+            numbers[num_idx++] = extractNumber(user_input, &iterator);
         } 
-        else if (isOperator(user_input[iterator])) 
+        else if (isOperator(*iterator)) 
         {
-            while (op_idx > 0 && checkPrecedence(operators[op_idx - 1]) >= checkPrecedence(user_input[iterator]))
+            if (*iterator == DIV) 
             {
-                accessOpeartor(numbers, &num_idx, operators, &op_idx);
+                while (op_idx > 0 && operators[op_idx - 1] == DIV) 
+                {
+                    accessOperator(numbers, &num_idx, operators, &op_idx);
+                }
+                operators[op_idx++] = *iterator;
             }
-            operators[op_idx++] = user_input[iterator];
+            else if (*iterator == MUL) 
+            {
+                while (op_idx > 0 && operators[op_idx - 1] == MUL) 
+                {
+                    accessOperator(numbers, &num_idx, operators, &op_idx);
+                }
+                operators[op_idx++] = *iterator;
+            }
+            else if (*iterator == ADD) 
+            {
+                while (op_idx > 0 && (operators[op_idx - 1] == ADD || operators[op_idx - 1] == SUB || operators[op_idx - 1] == MUL || operators[op_idx - 1] == DIV)) 
+                {
+                    accessOperator(numbers, &num_idx, operators, &op_idx);
+                }
+                operators[op_idx++] = *iterator;
+            }
+            else if (*iterator == SUB) 
+            {
+                while (op_idx > 0 && (operators[op_idx - 1] == ADD || operators[op_idx - 1] == SUB || operators[op_idx - 1] == MUL || operators[op_idx - 1] == DIV)) 
+                {
+                    accessOperator(numbers, &num_idx, operators, &op_idx);
+                }
+                operators[op_idx++] = *iterator;
+            }
             iterator++;
         } 
     }
     while (op_idx > 0) 
     {
-        accessOpeartor(numbers, &num_idx, operators, &op_idx);
+        accessOperator(numbers, &num_idx, operators, &op_idx);
     }
     return numbers[0];
 }
 
-
-int main() {
+int main() 
+{
     char user_input[100];
     readInput(user_input);
     removeWhitespaces(user_input);
-    checkInput(user_input);
-    int ans_computed = evaluateExpression(user_input);
-    printf("Computed answer is : %d\n",ans_computed);
+    validateInput(user_input);
+    int result = evaluateExpression(user_input);
+    printf("Computed answer is: %d\n", result);
     return 0;
 }
